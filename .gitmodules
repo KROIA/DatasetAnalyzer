@@ -1,0 +1,3 @@
+[submodule "Extern/Neural-net-2-graphics"]
+	path = Extern/Neural-net-2-graphics
+	url = https://github.com/KROIA/Neural-net-2-graphics
