@@ -11,15 +11,22 @@ CONFIG += c++17
 include(Extern/Neural-net-2-graphics/Neural-net-2-graphics.pri)
 
 SOURCES += \
+    AI_agent.cpp \
+    ModelFitter.cpp \
     datasetImport.cpp \
+    inputfield.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
+    AI_agent.h \
+    ModelFitter.h \
     datasetImport.h \
+    inputfield.h \
     mainwindow.h
 
 FORMS += \
+    inputfield.ui \
     mainwindow.ui
 
 # Default rules for deployment.
