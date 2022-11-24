@@ -16,24 +16,29 @@ ModelFitter::ModelFitter(const std::string &filePath,
     m_fitIterations = 500;
     m_blinkToggle = false;
     m_trainingEnabled = true;
+    m_datasetPlot_gridStepSize = 0.2;
+    m_datasetPlotSpaceMin = sf::Vector2f(0,0);
+    m_datasetPlotSpaceMax = sf::Vector2f( 20, 20);
 
-    size_t maxX = 5;
-    size_t maxY = 100;
+    size_t maxX = 3;
+    size_t maxY = 20;
 
-    AI_agent *loaded = new AI_agent(filePath,valueSplitter, 0, 0);
-    if(loaded->loadNet())
+    AI_agent *agent = nullptr;
+    /*agent = new AI_agent(filePath,valueSplitter, 0, 0);
+    if(agent->loadNet())
     {
-        m_fittest.agent = loaded;
+        m_fittest.agent = agent;
         m_fittest.error = 0;
         m_fitted = true;
-        addChild(loaded);
+        addChild(agent);
+        setupDatasetPlot();
         return;
     }
     else
-        delete loaded;
+        delete agent;*/
 
     m_netDimPainter = new NeuronalNet::Graphics::PixelPainter();
-    m_netDimPainter->setDimenstions(sf::Vector2u(maxX, maxY));
+    m_netDimPainter->setDimenstions(sf::Vector2u(maxX+1, maxY+1));
     m_netDimPainter->setDisplaySize(sf::Vector2f(2, 2));
     m_netDimPainter->setPos(sf::Vector2f(0,0));
     addComponent(m_netDimPainter);
@@ -42,11 +47,12 @@ ModelFitter::ModelFitter(const std::string &filePath,
     connect(m_blinkTimer, &QTimer::timeout, this, &ModelFitter::onBlinkTimer);
     m_blinkTimer->setInterval(1000);
 
-    for(size_t hiddenX = 1; hiddenX<=maxX; hiddenX++)
+    for(size_t hiddenX = 0; hiddenX<=maxX; hiddenX++)
     {
-        for(size_t hiddenY = 1; hiddenY<=maxY; hiddenY++)
+
+        for(size_t hiddenY = 2; hiddenY<=maxY; hiddenY++)
         {
-            AI_agent *agent = new AI_agent(filePath,valueSplitter,
+            agent = new AI_agent(filePath,valueSplitter,
                                            hiddenX, hiddenY);
             sf::Color col((char)Net::map(hiddenX, 0, maxX, 100,255),
                           (char)Net::map(hiddenY, 0, maxY, 100,255),
@@ -56,14 +62,45 @@ ModelFitter::ModelFitter(const std::string &filePath,
             agent->displayChart(false);
             addChild(agent);
             m_agents.push_back(ModelData{.error=0, .agent=agent});
+            if(hiddenX == 0)
+                break;
         }
     }
+
 
 }
 ModelFitter::~ModelFitter()
 {
 
 }
+void ModelFitter::setupDatasetPlot()
+{
+    AI_agent *agent = m_fittest.agent;
+    if(!agent && m_agents.size() > 0)
+        agent = m_agents[0].agent;
+    if(!agent)
+        return;
+    if(agent->getNet()->getInputCount() == 2)
+    {
+        sf::Vector2f pos(50,0);
+        for(size_t i=0; i<agent->getNet()->getOutputCount(); ++i)
+        {
+            NeuronalNet::Graphics::PixelPainter *plot= new NeuronalNet::Graphics::PixelPainter();
+
+            unsigned int width = (unsigned int)(m_datasetPlotSpaceMax.x-m_datasetPlotSpaceMin.x)/m_datasetPlot_gridStepSize;
+            unsigned int height = (unsigned int)(m_datasetPlotSpaceMax.y-m_datasetPlotSpaceMin.y)/m_datasetPlot_gridStepSize;
+            plot->setDimenstions(sf::Vector2u(width,height));
+            float pixelSize = 200/(float)height;
+            plot->setDisplaySize(pixelSize, pixelSize);
+            plot->setPos(pos);
+            pos.y += pixelSize*(float)height + 10;
+            m_datasetPlots.push_back(plot);
+            addComponent(plot);
+        }
+
+    }
+}
+
 
 void ModelFitter::update()
 {
@@ -73,6 +110,10 @@ void ModelFitter::update()
         trainModel();
     else
         fitModel();
+
+    static int updateCount = 0;
+    if(++updateCount % 10 == 0)
+        updateDatasetPlot();
 }
 std::vector<std::string> ModelFitter::getInputLabels() const
 {
@@ -183,6 +224,7 @@ void ModelFitter::evaluateBestModel()
             m_fittest = m_agents[i];
         }
     }
+    setupDatasetPlot();
     qDebug() << "The best fit has:"
              << " hiddenX = "<<m_fittest.agent->getNet()->getHiddenXCount()
              << " hiddenY = "<<m_fittest.agent->getNet()->getHiddenYCount();
@@ -247,4 +289,53 @@ void ModelFitter::updateNetDimPainter()
                                                agent.agent->getNet()->getHiddenYCount()),
                                   col);
     }
+}
+void ModelFitter::updateDatasetPlot()
+{
+    if(m_datasetPlots.size() == 0)
+        return;
+    if(!m_fittest.agent)
+        return;
+    NeuronalNet::Net *net = m_fittest.agent->getNet();
+
+    sf::Vector2u pixelCoord(0,0);
+    for(float x=m_datasetPlotSpaceMin.x; x<m_datasetPlotSpaceMax.x; x+=m_datasetPlot_gridStepSize)
+    {
+        for(float y=m_datasetPlotSpaceMin.y; y<m_datasetPlotSpaceMax.y; y+=m_datasetPlot_gridStepSize)
+        {
+            net->setInputVector(m_fittest.agent->getNormalized(std::vector<float>{x,y}, m_fittest.agent->getInputScaling()));
+            net->calculate();
+            SignalVector output = net->getOutputVector();
+            std::vector<float> naturalOutput = m_fittest.agent->getNatural(std::vector<float>(output.begin(), output.end()), m_fittest.agent->getOutputScaling());
+            for(size_t i=0; i<net->getOutputCount(); ++i)
+            {
+                m_datasetPlots[i]->setPixel(sf::Vector2u(pixelCoord.x,m_datasetPlots[i]->getDimensions().y-pixelCoord.y-1),
+                                            mapOutputToColor(naturalOutput[i]));
+              // m_datasetPlots[i]->setPixel(pixelCoord,
+              //                             mapOutputToColor(output[i]));
+            }
+            ++pixelCoord.y;
+        }
+        ++pixelCoord.x;
+        pixelCoord.y = 0;
+    }
+}
+sf::Color ModelFitter::mapOutputToColor(float value)
+{
+    value -= 0.5;
+    if(value < 0)
+    {
+        float maped = NeuronalNet::Net::map(value,-0.6,0,0,255);
+        if(maped < 0)
+            maped = 0;
+        if(maped > 255)
+            maped = 255;
+        return sf::Color(255, maped, maped);
+    }
+    float maped = NeuronalNet::Net::map(value,0,0.6,255,0);
+    if(maped < 0)
+        maped = 0;
+    if(maped > 255)
+        maped = 255;
+    return sf::Color(maped, 255, maped);
 }

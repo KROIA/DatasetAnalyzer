@@ -12,7 +12,8 @@ MainWindow::MainWindow(QWidget *parent)
     m_canvas = new QSFML::Canvas(ui->netWidget,settings);
 
     m_canvas->addObject(new QSFML::Objects::DefaultEditor());
-    m_canvas->addObject(m_fitter = new ModelFitter("kc_house_data.csv",";"));
+    //m_canvas->addObject(m_fitter = new ModelFitter("kc_house_data.csv",";"));
+    m_canvas->addObject(m_fitter = new ModelFitter("acceptance.csv",";"));
 
 
     std::vector<std::string> inpLabels = m_fitter->getInputLabels();

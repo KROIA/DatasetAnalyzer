@@ -33,6 +33,10 @@ class ModelFitter : public QObject, public QSFML::Objects::CanvasObject
         void getMinMaxErrors(float &min, float &average, float &max);
         void updateNetDimPainter();
 
+        void setupDatasetPlot();
+        void updateDatasetPlot();
+        sf::Color mapOutputToColor(float value);
+
 
         bool m_fitted;
         bool m_trainingEnabled;
@@ -51,4 +55,12 @@ class ModelFitter : public QObject, public QSFML::Objects::CanvasObject
     QTimer *m_blinkTimer;
     bool m_blinkToggle;
     sf::Color m_blinkDefColor;
+
+    // Displays the inputs (x and y) if the dataset is a 2 input set
+    // and visualizes the output as color for each given input combination.
+    std::vector<NeuronalNet::Graphics::PixelPainter*> m_datasetPlots;
+    float m_datasetPlot_gridStepSize;
+    sf::Vector2f m_datasetPlotSpaceMin;
+    sf::Vector2f m_datasetPlotSpaceMax;
+
 };

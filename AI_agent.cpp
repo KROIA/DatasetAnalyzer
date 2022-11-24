@@ -81,7 +81,7 @@ AI_agent::AI_agent(const std::string &filePath,
     m_net = new BackpropNet;
     m_net->setDimensions(m_inputSet[0].size(), hiddenX, hiddenY, m_outputSet[0].size());
     m_net->setLearnParameter(0.01);
-    m_net->setActivation(Activation::gauss);
+    m_net->setActivation(Activation::sigmoid);
     m_net->build();
 
     m_netModel = new  NeuronalNet::Graphics::NetModel(m_net);
@@ -218,7 +218,7 @@ void AI_agent::validate()
 
 
         qDebug() <<"ValidateError for: "<<a<< " = "<< rootMeanSquare
-                 << " NarutalError: "<<naturalRootMeanSquare
+                 << " NaturalError: "<<naturalRootMeanSquare
                  << " predicted: "<<predicted.c_str()
                  << " correct: "<<correct.c_str();
     }
