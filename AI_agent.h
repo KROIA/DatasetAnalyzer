@@ -2,7 +2,7 @@
 
 #include "neuronalNet.h"
 #include "netModel.h"
-#include "SFML_EditorWidget.h"
+#include "QSFML_EditorWidget.h"
 
 class AI_agent : public QSFML::Objects::CanvasObject
 {

@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include "neuronalNet.h"
-#include "SFML_EditorWidget.h"
+#include "QSFML_EditorWidget.h"
 #include "inputfield.h"
 #include "ModelFitter.h"
 
